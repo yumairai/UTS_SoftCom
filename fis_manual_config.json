@@ -1,0 +1,148 @@
+{
+  "mf_pm25": {
+    "rendah": [
+      0,
+      0,
+      75
+    ],
+    "sedang": [
+      50,
+      100,
+      150
+    ],
+    "tinggi": [
+      100,
+      300,
+      300
+    ]
+  },
+  "mf_pm10": {
+    "rendah": [
+      0,
+      0,
+      60
+    ],
+    "sedang": [
+      40,
+      80,
+      120
+    ],
+    "tinggi": [
+      80,
+      200,
+      200
+    ]
+  },
+  "mf_co": {
+    "rendah": [
+      0,
+      0,
+      15
+    ],
+    "sedang": [
+      10,
+      20,
+      30
+    ],
+    "tinggi": [
+      20,
+      50,
+      50
+    ]
+  },
+  "mf_out": {
+    "Sangat Aman": [
+      0,
+      10,
+      25
+    ],
+    "Aman": [
+      15,
+      30,
+      45
+    ],
+    "Netral": [
+      35,
+      50,
+      65
+    ],
+    "Tidak Sehat": [
+      55,
+      70,
+      85
+    ],
+    "Berbahaya": [
+      75,
+      90,
+      100
+    ]
+  },
+  "rules": [
+    [
+      "rendah",
+      "rendah",
+      "rendah",
+      "Sangat Aman"
+    ],
+    [
+      "rendah",
+      "sedang",
+      "rendah",
+      "Aman"
+    ],
+    [
+      "sedang",
+      "rendah",
+      "rendah",
+      "Aman"
+    ],
+    [
+      "sedang",
+      "sedang",
+      "sedang",
+      "Netral"
+    ],
+    [
+      "rendah",
+      "tinggi",
+      "sedang",
+      "Tidak Sehat"
+    ],
+    [
+      "tinggi",
+      "sedang",
+      "sedang",
+      "Tidak Sehat"
+    ],
+    [
+      "sedang",
+      "tinggi",
+      "tinggi",
+      "Tidak Sehat"
+    ],
+    [
+      "tinggi",
+      "tinggi",
+      "sedang",
+      "Berbahaya"
+    ],
+    [
+      "tinggi",
+      "tinggi",
+      "tinggi",
+      "Berbahaya"
+    ],
+    [
+      "sedang",
+      "sedang",
+      "tinggi",
+      "Tidak Sehat"
+    ]
+  ],
+  "classes": [
+    "Sangat Aman",
+    "Aman",
+    "Tidak Sehat",
+    "Berbahaya"
+  ]
+}
