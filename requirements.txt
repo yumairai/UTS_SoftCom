@@ -1,7 +1,6 @@
 streamlit
 numpy
-pandas
+matplotlib
+plotly
 tensorflow
-scikit-fuzzy
 scikit-learn
-networkx
