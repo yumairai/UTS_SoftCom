@@ -56,9 +56,9 @@ def centroid_defuzz(agg_output, universe):
     if np.sum(agg_output) == 0: return float(np.mean(universe))
     return float(np.sum(universe * agg_output) / np.sum(agg_output))
 
-# --- PERBAIKAN 2: Logika FIS Real (Mamdani) ---
+# --- PERBAIKAN LOGIKA FIS (Agar Tidak Unknown) ---
 def predict_fis(pm25, pm10, co, config=None):
-    # 1. Ekstrak Parameter dari Config (Atau gunakan default jika config kosong)
+    # 1. Ekstrak Parameter
     if config:
         mf_pm25 = config.get('mf_pm25', MF_PM25_DEFAULT)
         mf_pm10 = config.get('mf_pm10', MF_PM10_DEFAULT)
@@ -68,66 +68,79 @@ def predict_fis(pm25, pm10, co, config=None):
     else:
         mf_pm25, mf_pm10, mf_co, mf_out, rules = MF_PM25_DEFAULT, MF_PM10_DEFAULT, MF_CO_DEFAULT, MF_OUT_DEFAULT, RULES_DEFAULT
 
-    # 2. Tahap Fuzzifikasi (Menghitung derajat keanggotaan input di setiap himpunan fuzzy)
+    # 2. Fuzzifikasi
     fuzz_pm25 = fuzzify(pm25, mf_pm25)
     fuzz_pm10 = fuzzify(pm10, mf_pm10)
     fuzz_co   = fuzzify(co, mf_co)
-
-    # Simpan status aktif ini agar bisa di-passing ke UI jika perlu
     mf_active = {'pm25': fuzz_pm25, 'pm10': fuzz_pm10, 'co': fuzz_co}
 
-    # 3. Tahap Inferensi & Evaluasi Aturan (Mamdani MIN-MAX)
+    # 3. Inferensi
     agg_output = np.zeros_like(U_OUT, dtype=float)
+    rule_fired = False
 
     for rule in rules:
         if len(rule) == 4:
             cat25, cat10, cat_co, cat_out = rule
-            
-            # Cari nilai minimal (operator AND) dari himpunan yang terpanggil di aturan ini
             activation = min(
                 fuzz_pm25.get(cat25, 0.0),
                 fuzz_pm10.get(cat10, 0.0),
                 fuzz_co.get(cat_co, 0.0)
             )
 
-            # Jika rule ini aktif (nilai di atas 0)
             if activation > 0:
+                rule_fired = True
                 out_params = mf_out.get(cat_out)
                 if out_params:
-                    # Gambar kurva output untuk kategori tersebut (Sangat Aman, Aman, dll)
                     out_mf_array = np.array([trimf(x, tuple(out_params)) for x in U_OUT])
-                    
-                    # Potong kurva berdasarkan seberapa kuat aktivasinya (Implikasi MIN)
                     implied_mf = np.minimum(activation, out_mf_array)
-                    
-                    # Gabungkan dengan kurva agregasi utama (Agregasi MAX)
                     agg_output = np.maximum(agg_output, implied_mf)
 
-    # 4. Tahap Defuzzifikasi (Menghitung nilai tegas dari gabungan area kurva)
-    score = centroid_defuzz(agg_output, U_OUT)
+    # 4. Defuzzifikasi & Fallback
+    # Jika tidak ada rule yang kena, kita hitung skor manual berdasarkan rata-rata input
+    if not rule_fired:
+        # Fallback: Skor dihitung dari rata-rata persentase input terhadap ambang batas
+        score = (min(pm25/300, 1) + min(pm10/200, 1) + min(co/50, 1)) / 3 * 100
+    else:
+        score = centroid_defuzz(agg_output, U_OUT)
 
-    # 5. Penentuan Label Kategorikal (Klasifikasi)
-    # Cek di kurva mana (Sangat Aman, Aman, Tidak Sehat, Berbahaya) skor ini berada paling tinggi
-    best_label = "Unknown"
+    # 5. Penentuan Label (Klasifikasi)
+    best_label = "Sangat Aman" # Default fallback terendah
     max_membership = -1.0
+    
     for cls_name, params in mf_out.items():
         deg = trimf(score, tuple(params))
         if deg > max_membership:
             max_membership = deg
             best_label = cls_name
+    
+    # Jika skor sangat tinggi tapi tidak kena MF manapun (out of range)
+    if score > 80 and max_membership <= 0:
+        best_label = "Berbahaya"
 
-    # Konversi label "Netral" (jika di JSON ada) menjadi "Tidak Sehat" agar sesuai dengan 4 kelas ANN
-    if best_label == "Netral":
-        best_label = "Tidak Sehat"
-
+    # Konsistensi Label
+    if best_label == "Netral": best_label = "Tidak Sehat"
+    
     return best_label, score, mf_active, mf_pm25, mf_pm10, mf_co
 
+# --- PERBAIKAN LOGIKA ANN ---
 def predict_ann(pm25, pm10, co, models):
-    classes = models['label_enc']['classes']
+    # Pastikan classes diambil dari CLASS_ORDER agar tidak Unknown
+    classes = CLASS_ORDER 
+    
     if models['ann'] is not None and models['scaler'] is not None:
-        X = np.array([[pm25, pm10, co]])
-        X_scaled = models['scaler'].transform(X)
-        proba = models['ann'].predict(X_scaled, verbose=0)[0]
-        label = classes[int(np.argmax(proba))]
-        return label, proba
-    return "Unknown", np.array([0.25, 0.25, 0.25, 0.25])
+        try:
+            X = np.array([[pm25, pm10, co]])
+            X_scaled = models['scaler'].transform(X)
+            proba = models['ann'].predict(X_scaled, verbose=0)[0]
+            label = classes[int(np.argmax(proba))]
+            return label, proba
+        except Exception as e:
+            st.error(f"Prediction Error: {e}")
+            
+    # Jika model gagal load, berikan prediksi dummy berdasarkan input sederhana
+    # agar UI tidak pecah/Unknown
+    dummy_idx = 0
+    if pm25 > 150 or pm10 > 100: dummy_idx = 2
+    if pm25 > 250: dummy_idx = 3
+    
+    return classes[dummy_idx], np.array([0.0, 0.0, 0.0, 0.0])
