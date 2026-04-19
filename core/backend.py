@@ -124,23 +124,21 @@ def predict_fis(pm25, pm10, co, config=None):
 
 # --- PERBAIKAN LOGIKA ANN ---
 def predict_ann(pm25, pm10, co, models):
-    # Pastikan classes diambil dari CLASS_ORDER agar tidak Unknown
     classes = CLASS_ORDER 
     
-    if models['ann'] is not None and models['scaler'] is not None:
-        try:
-            X = np.array([[pm25, pm10, co]])
-            X_scaled = models['scaler'].transform(X)
-            proba = models['ann'].predict(X_scaled, verbose=0)[0]
-            label = classes[int(np.argmax(proba))]
-            return label, proba
-        except Exception as e:
-            st.error(f"Prediction Error: {e}")
-            
-    # Jika model gagal load, berikan prediksi dummy berdasarkan input sederhana
-    # agar UI tidak pecah/Unknown
-    dummy_idx = 0
-    if pm25 > 150 or pm10 > 100: dummy_idx = 2
-    if pm25 > 250: dummy_idx = 3
-    
-    return classes[dummy_idx], np.array([0.0, 0.0, 0.0, 0.0])
+    # Cek apakah model & scaler benar-benar ada
+    if models['ann'] is None:
+        return "Model Error", np.array([0, 0, 0, 0])
+    if models['scaler'] is None:
+        return "Scaler Error", np.array([0, 0, 0, 0])
+
+    try:
+        X = np.array([[pm25, pm10, co]])
+        X_scaled = models['scaler'].transform(X)
+        proba = models['ann'].predict(X_scaled, verbose=0)[0]
+        label = classes[int(np.argmax(proba))]
+        return label, proba
+    except Exception as e:
+        # Ini akan memunculkan pesan error asli di web Streamlit kamu
+        st.warning(f"Terjadi kesalahan teknis: {e}")
+        return "Error", np.array([0, 0, 0, 0])
