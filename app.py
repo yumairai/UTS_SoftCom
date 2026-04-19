@@ -24,9 +24,9 @@ def main():
     # 3. Header Utama 
     st.markdown("""
     <div class="main-header">
-        <h1 class="main-title"> Sistem Klasifikasi Kualitas Udara</h1>
+        <h1 class="main-title"> Sistem Pendeteksi Kualitas Udara</h1>
         <p class="main-subtitle">
-            Berbasis Indeks Standar Pencemar Udara (ISPU) <br>
+            Berbasis Indeks Standar Pencemar Udara (ISPU) DKI Jakarta <br>
             Perbandingan: Pakar Manusia vs. Evolutionary Tuning & Neuro-Fuzzy
         </p>
     </div>

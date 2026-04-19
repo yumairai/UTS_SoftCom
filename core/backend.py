@@ -17,15 +17,18 @@ MF_PM25_DEFAULT = {'rendah': (0,0,75), 'sedang': (50,100,150), 'tinggi': (100,30
 MF_PM10_DEFAULT = {'rendah': (0,0,60), 'sedang': (40,80,120), 'tinggi': (80,200,200)}
 MF_CO_DEFAULT   = {'rendah': (0,0,15), 'sedang': (10,20,30), 'tinggi': (20,50,50)}
 MF_OUT_DEFAULT  = {'Sangat Aman': (0,10,25), 'Aman': (15,30,45), 'Tidak Sehat': (55,70,85), 'Berbahaya': (75,90,100)}
-RULES_DEFAULT   = [('rendah', 'rendah', 'rendah', 'Sangat Aman'), ('tinggi', 'tinggi', 'tinggi', 'Berbahaya')] # Dipersingkat utk contoh
+RULES_DEFAULT   = [('rendah', 'rendah', 'rendah', 'Sangat Aman'), ('tinggi', 'tinggi', 'tinggi', 'Berbahaya')] 
 
 @st.cache_resource(show_spinner=False)
 def load_models():
     models = {'ann': None, 'scaler': None, 'label_enc': {'classes': CLASS_ORDER}, 'fis_manual': None, 'fis_ga': None}
     
     try:
+        # PERBAIKAN 1: Load kedua konfigurasi JSON
         if os.path.exists('fis_manual_config.json'):
             models['fis_manual'] = json.load(open('fis_manual_config.json'))
+        if os.path.exists('fis_ga_config.json'):
+            models['fis_ga'] = json.load(open('fis_ga_config.json'))
     except Exception as e: pass
 
     try:
@@ -53,18 +56,76 @@ def centroid_defuzz(agg_output, universe):
     if np.sum(agg_output) == 0: return float(np.mean(universe))
     return float(np.sum(universe * agg_output) / np.sum(agg_output))
 
+# --- PERBAIKAN 2: Logika FIS Real (Mamdani) ---
 def predict_fis(pm25, pm10, co, config=None):
-    # Logika Fuzzy inference Anda ada di sini (bisa copas dari yg sebelumnya)
-    # Ini versi singkat agar muat
-    score = np.random.uniform(10, 90) # Ganti dgn _run_fis_inference asli Anda
-    label = "Aman" if score < 40 else "Tidak Sehat"
-    mf_active = {'pm25': {'rendah': 0.8}, 'pm10': {'sedang': 0.5}, 'co': {'tinggi':0.1}}
-    return label, score, mf_active, MF_PM25_DEFAULT, MF_PM10_DEFAULT, MF_CO_DEFAULT
+    # 1. Ekstrak Parameter dari Config (Atau gunakan default jika config kosong)
+    if config:
+        mf_pm25 = config.get('mf_pm25', MF_PM25_DEFAULT)
+        mf_pm10 = config.get('mf_pm10', MF_PM10_DEFAULT)
+        mf_co   = config.get('mf_co', MF_CO_DEFAULT)
+        mf_out  = config.get('mf_out', MF_OUT_DEFAULT)
+        rules   = config.get('rules', RULES_DEFAULT)
+    else:
+        mf_pm25, mf_pm10, mf_co, mf_out, rules = MF_PM25_DEFAULT, MF_PM10_DEFAULT, MF_CO_DEFAULT, MF_OUT_DEFAULT, RULES_DEFAULT
 
-def predict_ann(pm25, pm10, so2, co, o3, no2, models):
+    # 2. Tahap Fuzzifikasi (Menghitung derajat keanggotaan input di setiap himpunan fuzzy)
+    fuzz_pm25 = fuzzify(pm25, mf_pm25)
+    fuzz_pm10 = fuzzify(pm10, mf_pm10)
+    fuzz_co   = fuzzify(co, mf_co)
+
+    # Simpan status aktif ini agar bisa di-passing ke UI jika perlu
+    mf_active = {'pm25': fuzz_pm25, 'pm10': fuzz_pm10, 'co': fuzz_co}
+
+    # 3. Tahap Inferensi & Evaluasi Aturan (Mamdani MIN-MAX)
+    agg_output = np.zeros_like(U_OUT, dtype=float)
+
+    for rule in rules:
+        if len(rule) == 4:
+            cat25, cat10, cat_co, cat_out = rule
+            
+            # Cari nilai minimal (operator AND) dari himpunan yang terpanggil di aturan ini
+            activation = min(
+                fuzz_pm25.get(cat25, 0.0),
+                fuzz_pm10.get(cat10, 0.0),
+                fuzz_co.get(cat_co, 0.0)
+            )
+
+            # Jika rule ini aktif (nilai di atas 0)
+            if activation > 0:
+                out_params = mf_out.get(cat_out)
+                if out_params:
+                    # Gambar kurva output untuk kategori tersebut (Sangat Aman, Aman, dll)
+                    out_mf_array = np.array([trimf(x, tuple(out_params)) for x in U_OUT])
+                    
+                    # Potong kurva berdasarkan seberapa kuat aktivasinya (Implikasi MIN)
+                    implied_mf = np.minimum(activation, out_mf_array)
+                    
+                    # Gabungkan dengan kurva agregasi utama (Agregasi MAX)
+                    agg_output = np.maximum(agg_output, implied_mf)
+
+    # 4. Tahap Defuzzifikasi (Menghitung nilai tegas dari gabungan area kurva)
+    score = centroid_defuzz(agg_output, U_OUT)
+
+    # 5. Penentuan Label Kategorikal (Klasifikasi)
+    # Cek di kurva mana (Sangat Aman, Aman, Tidak Sehat, Berbahaya) skor ini berada paling tinggi
+    best_label = "Unknown"
+    max_membership = -1.0
+    for cls_name, params in mf_out.items():
+        deg = trimf(score, tuple(params))
+        if deg > max_membership:
+            max_membership = deg
+            best_label = cls_name
+
+    # Konversi label "Netral" (jika di JSON ada) menjadi "Tidak Sehat" agar sesuai dengan 4 kelas ANN
+    if best_label == "Netral":
+        best_label = "Tidak Sehat"
+
+    return best_label, score, mf_active, mf_pm25, mf_pm10, mf_co
+
+def predict_ann(pm25, pm10, co, models):
     classes = models['label_enc']['classes']
     if models['ann'] is not None and models['scaler'] is not None:
-        X = np.array([[pm25, pm10, so2, co, o3, no2]])
+        X = np.array([[pm25, pm10, co]])
         X_scaled = models['scaler'].transform(X)
         proba = models['ann'].predict(X_scaled, verbose=0)[0]
         label = classes[int(np.argmax(proba))]

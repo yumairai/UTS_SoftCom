@@ -45,7 +45,7 @@ def render_prediction_tab(models):
         st.markdown('<div class="glass-card"><div class="card-title"><span class="material-symbols-outlined">architecture</span> Pemilihan Model</div>', unsafe_allow_html=True)
         model_choice = st.radio(
             "Model", 
-            ["Pendekatan Pakar (FIS Manual)", "Evolutionary Tuning (FIS + GA)", "Model Prediktif (ANN)"], 
+            ["Pendekatan Pakar (FIS Manual)", "Evolutionary Tuning (FIS + GA)", "Neural Optimization (FIS + ANN)"], 
             label_visibility="collapsed"
         )
         st.markdown('</div>', unsafe_allow_html=True)
@@ -55,33 +55,26 @@ def render_prediction_tab(models):
         pm25 = st.slider("PM2.5 (Partikulat Halus) - µg/m³", 0.0, 300.0, 74.2, step=0.1)
         pm10 = st.slider("PM10 (Partikulat Kasar) - µg/m³", 0.0, 200.0, 58.0, step=0.1)
         co   = st.slider("CO (Karbon Monoksida) - ppm", 0.0, 50.0, 12.8, step=0.1)
-        
-        so2 = o3 = no2 = 0.0
-        if "ANN" in model_choice:
-            st.markdown("<hr style='border-color: rgba(166, 138, 132, 0.15); margin: 1.5rem 0;'>", unsafe_allow_html=True)
-            so2 = st.slider("SO₂ (Sulfur Dioksida) - ppb", 0.0, 112.0, 45.0, step=0.1)
-            o3  = st.slider("O₃ (Ozon) - ppb", 0.0, 314.0, 88.2, step=0.1)
-            no2 = st.slider("NO₂ (Nitrogen Dioksida) - ppb", 0.0, 202.0, 15.7, step=0.1)
             
         st.markdown('</div>', unsafe_allow_html=True)
 
         if st.button("Jalankan Simulasi", use_container_width=True):
             with st.spinner("Memproses model..."):
                 time.sleep(0.8) 
-                if "FIS" in model_choice:
+                if "ANN" in model_choice:
+                    lbl, proba = predict_ann(pm25, pm10, co, models)
+                    st.session_state['last_result'] = {
+                        'mode': 'ann', 'label': lbl, 'proba': proba, 
+                        'confidence': float(max(proba)), 
+                        'pm25': pm25, 'pm10': pm10, 'co': co
+                    }
+                else: # Jika bukan ANN, pasti antara FIS Manual atau FIS+GA
                     cfg = models.get('fis_manual' if "Manual" in model_choice else 'fis_ga')
                     lbl, scr, mfa, m25, m10, mco = predict_fis(pm25, pm10, co, config=cfg)
                     st.session_state['last_result'] = {
                         'mode': 'fis', 'label': lbl, 'score': scr, 
                         'mf_25': m25, 'mf_10': m10, 'mf_co': mco, 
                         'pm25': pm25, 'pm10': pm10, 'co': co
-                    }
-                else:
-                    lbl, proba = predict_ann(pm25, pm10, so2, co, o3, no2, models)
-                    st.session_state['last_result'] = {
-                        'mode': 'ann', 'label': lbl, 'proba': proba, 
-                        'confidence': float(max(proba)), 
-                        'pm25': pm25, 'pm10': pm10, 'so2': so2, 'co': co, 'o3': o3, 'no2': no2
                     }
 
     # ==========================================
@@ -178,19 +171,21 @@ def render_panduan_tab(models):
         st.markdown("<h4 style='color:#ffb4a3; font-family: Space Grotesk, sans-serif; margin-bottom:10px;'>Status Model</h4>", unsafe_allow_html=True)
         
         ann_status = "🟢 Dimuat (.h5)" if models.get('ann') else "🔴 Gagal Dimuat"
-        fis_status = "🟢 Dimuat (.json)" if models.get('fis_manual') else "🟡 Default Values"
+        fis_manual_status = "🟢 Dimuat (.json)" if models.get('fis_manual') else "🟡 Default Values"
+        fis_ga_status = "🟢 Dimuat (.json)" if models.get('fis_ga') else "🔴 Gagal Dimuat"
         
         st.markdown(f"""
         <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #a3cce4;">
             <div style="margin-bottom: 8px;">Model ANN : {ann_status}</div>
-            <div>Model FIS : {fis_status}</div>
+            <div style="margin-bottom: 8px;">Model FIS Manual : {fis_manual_status}</div>
+            <div>Model FIS + GA : {fis_ga_status}</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
         st.markdown("""
         <div style="font-family: 'Public Sans', sans-serif; color: #a3cce4; line-height: 1.7; font-size: 0.95rem; margin-bottom: 15px;">
-            Sistem ini digunakan untuk mengklasifikasikan kualitas udara berdasarkan ISPU 
+            Sistem ini digunakan untuk mengklasifikasikan kualitas udara berdasarkan ISPU DKI Jakarta
             menggunakan tiga pendekatan: <b>FIS Manual</b>, <b>FIS + GA</b>, dan <b>ANN</b>.
             Atur parameter polutan untuk melihat perbandingan hasil prediksi secara langsung.
         </div>
