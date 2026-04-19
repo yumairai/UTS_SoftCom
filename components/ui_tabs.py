@@ -100,8 +100,7 @@ def render_prediction_tab(models):
                 
                 st.markdown("<hr style='border-color: rgba(166, 138, 132, 0.15); margin: 1rem 0;'>", unsafe_allow_html=True)
                 
-                fig_cm = plot_confusion_matrix(CLASS_ORDER)
-                st.plotly_chart(fig_cm, use_container_width=True)
+
                 
             st.markdown('</div>', unsafe_allow_html=True)
             

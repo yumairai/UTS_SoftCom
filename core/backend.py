@@ -19,6 +19,21 @@ MF_CO_DEFAULT   = {'rendah': (0,0,15), 'sedang': (10,20,30), 'tinggi': (20,50,50
 MF_OUT_DEFAULT  = {'Sangat Aman': (0,10,25), 'Aman': (15,30,45), 'Tidak Sehat': (55,70,85), 'Berbahaya': (75,90,100)}
 RULES_DEFAULT   = [('rendah', 'rendah', 'rendah', 'Sangat Aman'), ('tinggi', 'tinggi', 'tinggi', 'Berbahaya')] 
 
+def build_ann_model():
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, Input
+    
+    # Arsitektur HARUS persis sama dengan yang di Colab (sesuai error log kamu tadi)
+    model = Sequential([
+        Input(shape=(3,)),
+        Dense(9, activation='sigmoid', name='fuzzification_layer'),
+        Dense(16, activation='relu', name='rule_base'),
+        BatchNormalization(name='batch_normalization'),
+        Dropout(0.2, name='dropout'),
+        Dense(4, activation='softmax', name='output_class')
+    ])
+    return model
+
 @st.cache_resource(show_spinner=False)
 def load_models():
     models = {
@@ -29,7 +44,7 @@ def load_models():
         'fis_ga': None
     }
     
-    # 1. Cek & Load Config JSON
+    # --- 1. Load Config JSON (Manual & GA) ---
     try:
         if os.path.exists('fis_manual_config.json'):
             with open('fis_manual_config.json', 'r') as f:
@@ -41,32 +56,35 @@ def load_models():
     except Exception as e:
         st.error(f"Gagal memuat JSON: {e}")
 
-    # 2. Cek & Load Model ANN + Scaler
+    # --- 2. Load ANN (Gunakan Cara Weights Saja) ---
     try:
-        from tensorflow.keras.models import load_model
-        
-        # Cek ANN
-        if os.path.exists('ann_model.h5'):
-            models['ann'] = load_model('ann_model.h5')
+        # Kita pakai file .weights.h5 agar aman dari mismatch versi Keras
+        if os.path.exists('model_weights.weights.h5'):
+            ann = build_ann_model() # Panggil fungsi kerangka modelmu
+            ann.load_weights('model_weights.weights.h5')
+            models['ann'] = ann
+            st.success("✅ Model ANN (Weights) Berhasil Dimuat")
         else:
-            st.error("File 'ann_model.h5' tidak ditemukan!")
+            st.error("File 'model_weights.weights.h5' tidak ditemukan!")
+    except Exception as e:
+        st.error(f"⚠️ Gagal load weights ANN: {e}")
 
-        # Cek Scaler
+    # --- 3. Load Scaler & Label Encoder ---
+    try:
+        # Cek Scaler (WAJIB ADA buat ANN)
         if os.path.exists('scaler.pkl'):
             with open('scaler.pkl', 'rb') as f:
                 models['scaler'] = pickle.load(f)
         else:
             st.error("File 'scaler.pkl' tidak ditemukan!")
 
-        # Cek Label Encoder
+        # Cek Label Encoder (Opsional jika sudah pakai CLASS_ORDER)
         if os.path.exists('label_encoder.pkl'):
             with open('label_encoder.pkl', 'rb') as f:
                 models['label_enc'] = pickle.load(f)
                 
     except Exception as e:
-        # Jika muncul error "Unknown layer", "Bad magic number", dsb
-        st.error(f"⚠️ Error Kritikal saat memuat model: {e}")
-        st.info("Saran: Pastikan versi TensorFlow di laptop sama dengan di Colab.")
+        st.error(f"⚠️ Error saat memuat Scaler/Encoder: {e}")
         
     return models
 
