@@ -23,7 +23,6 @@ def build_ann_model():
     from tensorflow.keras.models import Sequential
     from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, Input
     
-    # Arsitektur HARUS persis sama dengan yang di Colab (sesuai error log kamu tadi)
     model = Sequential([
         Input(shape=(3,)),
         Dense(9, activation='sigmoid', name='fuzzification_layer'),
@@ -63,7 +62,7 @@ def load_models():
             ann = build_ann_model() # Panggil fungsi kerangka modelmu
             ann.load_weights('model_weights.weights.h5')
             models['ann'] = ann
-            st.success("✅ Model ANN (Weights) Berhasil Dimuat")
+            # st.success("✅ Model ANN (Weights) Berhasil Dimuat")
         else:
             st.error("File 'model_weights.weights.h5' tidak ditemukan!")
     except Exception as e:
@@ -100,7 +99,6 @@ def centroid_defuzz(agg_output, universe):
     if np.sum(agg_output) == 0: return float(np.mean(universe))
     return float(np.sum(universe * agg_output) / np.sum(agg_output))
 
-# --- PERBAIKAN LOGIKA FIS (Agar Tidak Unknown) ---
 def predict_fis(pm25, pm10, co, config=None):
     # 1. Ekstrak Parameter
     if config:
@@ -166,9 +164,7 @@ def predict_fis(pm25, pm10, co, config=None):
     
     return best_label, score, mf_active, mf_pm25, mf_pm10, mf_co
 
-# --- PERBAIKAN LOGIKA ANN ---
 def predict_ann(pm25, pm10, co, models):
-    # Pastikan classes diambil dari CLASS_ORDER agar tidak Unknown
     classes = CLASS_ORDER 
     
     if models['ann'] is not None and models['scaler'] is not None:

@@ -3,7 +3,7 @@ from components.styles import inject_css
 from core.backend import load_models
 
 # Tambahkan import render_panduan_tab
-from components.ui_tabs import render_prediction_tab, render_conclusion_tab, render_panduan_tab
+from components.ui_tabs import render_prediction_tab, render_panduan_tab
 
 # Konfigurasi halaman dasar - Set sidebar ke collapsed sejak awal
 st.set_page_config(
@@ -34,17 +34,14 @@ def main():
     """, unsafe_allow_html=True)
 
     # 4. Routing Halaman Utama 
-    tab1, tab2, tab3 = st.tabs([
+    tab1, tab2 = st.tabs([
         "🔬 Prediksi ISPU", 
-        "⚖️ Insight & Kesimpulan",
         "ℹ️ Status & Panduan"
     ])
     
     with tab1:
         render_prediction_tab(models)
     with tab2:
-        render_conclusion_tab()
-    with tab3:
         render_panduan_tab(models)
 
 if __name__ == "__main__":

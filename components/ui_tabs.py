@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 from core.backend import predict_fis, predict_ann, CLASS_ORDER
-from components.visualisasi import plot_membership_functions, plot_ann_probabilities, plot_confusion_matrix
+from components.visualisasi import plot_membership_functions, plot_ann_probabilities
 import streamlit.components.v1 as components
 from components.styles import HTML_CARD_CSS
 
@@ -100,8 +100,6 @@ def render_prediction_tab(models):
                 
                 st.markdown("<hr style='border-color: rgba(166, 138, 132, 0.15); margin: 1rem 0;'>", unsafe_allow_html=True)
                 
-
-                
             st.markdown('</div>', unsafe_allow_html=True)
             
         else:
@@ -113,57 +111,10 @@ def render_prediction_tab(models):
             </div>
             """, unsafe_allow_html=True)
 
-
-def render_conclusion_tab():
-    html = f"""
-    <html>
-    <head>
-        {HTML_CARD_CSS}
-    </head>
-    <body>
-        <div class="bento-container">
-
-            <div class="bento-left">
-                <div class="bento-card bento-highlight">
-                    <div class="bento-icon">🧠</div>
-                    <div class="bento-title">Pendekatan Pakar (FIS Manual)</div>
-                    <div class="bento-text">
-                        Menggunakan aturan berbasis pengetahuan pakar. Cocok digunakan saat data historis terbatas 
-                        karena bersifat transparan, stabil, dan mudah dipahami.
-                    </div>
-                </div>
-            </div>
-
-            <div class="bento-right">
-                <div class="bento-card">
-                    <div class="bento-icon">🧬</div>
-                    <div class="bento-title">Optimasi Evolusioner (FIS + GA)</div>
-                    <div class="bento-text">
-                        Menggunakan algoritma genetika untuk mengoptimasi fungsi keanggotaan sehingga meningkatkan akurasi,
-                        namun tetap dapat diinterpretasikan.
-                    </div>
-                </div>
-
-                <div class="bento-card">
-                    <div class="bento-icon">📊</div>
-                    <div class="bento-title">Model Prediktif (ANN)</div>
-                    <div class="bento-text">
-                        Model berbasis pembelajaran mesin dengan akurasi tinggi yang memanfaatkan banyak parameter,
-                        namun bersifat black-box dan sulit dijelaskan.
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </body>
-    </html>
-    """
-    render_html_block(html, height=330)
-
-
 def render_panduan_tab(models):
     st.markdown('<div class="glass-card"><div class="card-title"><span class="material-symbols-outlined">info</span> Informasi & Panduan</div>', unsafe_allow_html=True)
     
+    # --- BAGIAN ATAS: STATUS & CARA PENGGUNAAN ---
     col1, col2 = st.columns([1, 2], gap="large")
 
     with col1:
@@ -174,34 +125,59 @@ def render_panduan_tab(models):
         fis_ga_status = "🟢 Dimuat (.json)" if models.get('fis_ga') else "🔴 Gagal Dimuat"
         
         st.markdown(f"""
-        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #a3cce4;">
-            <div style="margin-bottom: 8px;">Model ANN : {ann_status}</div>
-            <div style="margin-bottom: 8px;">Model FIS Manual : {fis_manual_status}</div>
-            <div>Model FIS + GA : {fis_ga_status}</div>
-        </div>
-        """, unsafe_allow_html=True)
+<div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #a3cce4;">
+    <div style="margin-bottom: 8px;">Model FIS Manual : {fis_manual_status}</div>
+    <div>Model FIS + GA : {fis_ga_status}</div>
+    <div style="margin-bottom: 8px;">Model FIS + ANN : {ann_status}</div>
+</div>
+""", unsafe_allow_html=True)
 
     with col2:
         st.markdown("""
-        <div style="font-family: 'Public Sans', sans-serif; color: #a3cce4; line-height: 1.7; font-size: 0.95rem; margin-bottom: 15px;">
-            Sistem ini digunakan untuk mengklasifikasikan kualitas udara berdasarkan ISPU DKI Jakarta
-            menggunakan tiga pendekatan: <b>FIS Manual</b>, <b>FIS + GA</b>, dan <b>ANN</b>.
-            Atur parameter polutan untuk melihat perbandingan hasil prediksi secara langsung.
-        </div>
-        """, unsafe_allow_html=True)
+<div style="font-family: 'Public Sans', sans-serif; color: #a3cce4; line-height: 1.7; font-size: 0.95rem; margin-bottom: 15px;">
+    Sistem ini mengklasifikasikan kualitas udara berdasarkan dataset historis ISPU DKI Jakarta.
+    Anda dapat mensimulasikan berbagai kondisi atmosfer untuk membandingkan kinerja dan akurasi ketiga arsitektur kecerdasan buatan di bawah ini.
+</div>
+""", unsafe_allow_html=True)
 
         st.markdown("<h4 style='color:#ffb4a3; font-family: Space Grotesk, sans-serif; margin-bottom:10px;'>Panduan Penggunaan</h4>", unsafe_allow_html=True)
 
         st.markdown("""
-        <div style="font-family: 'Public Sans', sans-serif; color: #a3cce4; line-height: 1.8; font-size: 1rem;">
-            <ol style="margin-left: 20px;">
-                <li style="margin-bottom: 8px;">Buka tab <strong style="color: #dae3f7;">Prediksi ISPU</strong>.</li>
-                <li style="margin-bottom: 8px;">Pilih <strong style="color: #dae3f7;">Model</strong> yang ingin digunakan.</li>
-                <li style="margin-bottom: 8px;">Atur <strong style="color: #dae3f7;">parameter polutan</strong>.</li>
-                <li style="margin-bottom: 8px;">Klik <strong style="color: #ffb4a3;">Jalankan Simulasi</strong>.</li>
-                <li>Lihat hasil dan grafik analisis di panel kanan.</li>
-            </ol>
-        </div>
-        """, unsafe_allow_html=True)
+<div style="font-family: 'Public Sans', sans-serif; color: #a3cce4; line-height: 1.8; font-size: 1rem;">
+    <ol style="margin-left: 20px; margin-bottom: 0;">
+        <li style="margin-bottom: 6px;">Buka tab <strong style="color: #dae3f7;">Prediksi ISPU</strong>.</li>
+        <li style="margin-bottom: 6px;">Pilih <strong style="color: #dae3f7;">Model Arsitektur</strong> yang ingin diuji.</li>
+        <li style="margin-bottom: 6px;">Atur <strong style="color: #dae3f7;">Parameter Polutan</strong> menggunakan slider.</li>
+        <li style="margin-bottom: 6px;">Klik <strong style="color: #ffb4a3;">Jalankan Simulasi</strong>.</li>
+        <li>Lihat hasil kalkulasi dan grafik di panel kanan.</li>
+    </ol>
+</div>
+""", unsafe_allow_html=True)
+
+    # Garis pemisah tipis
+    st.markdown("<hr style='border-color: rgba(166, 138, 132, 0.15); margin: 2.5rem 0 2rem 0;'>", unsafe_allow_html=True)
+
+    # --- BAGIAN BAWAH: PENJELASAN MODEL ---
+    st.markdown("<h4 style='color:#ffb4a3; font-family: Space Grotesk, sans-serif; margin-bottom:20px; text-align:center; letter-spacing: 1px;'>INSIGHT ARSITEKTUR KECERDASAN</h4>", unsafe_allow_html=True)
+
+    st.markdown("""
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+<div style="background: rgba(0,0,0,0.2); padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden;">
+<div style="font-size:2.5rem; margin-bottom:15px; opacity: 0.9;">🧠</div>
+<div style="color:#ffb4a3; font-weight:700; margin-bottom:10px; font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; text-transform: uppercase;">Pendekatan Pakar<br>(FIS Manual)</div>
+<div style="color:#a3cce4; font-size:0.9rem; line-height:1.6; font-family: 'Public Sans', sans-serif;">Menggunakan aturan logika fuzzy (<i>rule-base</i>) manual. Berdasarkan uji data riil, model ini memiliki <b>akurasi terendah (~25%)</b> karena sangat sulit menentukan batas kurva yang presisi untuk pola polusi kompleks murni dari asumsi manusia.</div>
+</div>
+<div style="background: rgba(0,0,0,0.2); padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden;">
+<div style="font-size:2.5rem; margin-bottom:15px; opacity: 0.9;">🧬</div>
+<div style="color:#ffb4a3; font-weight:700; margin-bottom:10px; font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; text-transform: uppercase;">Evolutionary Tuning<br>(FIS + GA)</div>
+<div style="color:#a3cce4; font-size:0.9rem; line-height:1.6; font-family: 'Public Sans', sans-serif;">Algoritma Genetika (GA) mengoptimasi batas kurva keanggotaan FIS secara otomatis untuk meminimalkan nilai eror (MSE). Terbukti <b>meningkatkan akurasi signifikan (~44%)</b> dari versi manual, sembari tetap menjaga transparansi aturan logikanya.</div>
+</div>
+<div style="background: rgba(0,0,0,0.2); padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden;">
+<div style="font-size:2.5rem; margin-bottom:15px; opacity: 0.9;">📊</div>
+<div style="color:#ffb4a3; font-weight:700; margin-bottom:10px; font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; text-transform: uppercase;">Neural Optimization<br>(FIS + ANN)</div>
+<div style="color:#a3cce4; font-size:0.9rem; line-height:1.6; font-family: 'Public Sans', sans-serif;">Jaringan Saraf Tiruan (<i>Deep Learning</i>) yang memproses keenam parameter polutan sekaligus. Menunjukkan performa paling superior dengan <b>akurasi tertinggi (~94%)</b>, sangat kuat mengenali pola non-linear meski bersifat <i>black-box</i>.</div>
+</div>
+</div>
+""", unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
