@@ -36,7 +36,7 @@ def main():
     # 4. Routing Halaman Utama 
     tab1, tab2 = st.tabs([
         "🔬 Prediksi ISPU", 
-        "ℹ️ Status & Panduan"
+        "ℹ️ Informasi & Panduan"
     ])
     
     with tab1:
