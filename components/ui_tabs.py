@@ -113,44 +113,25 @@ def render_prediction_tab(models):
 
 def render_panduan_tab(models):
     st.markdown('<div class="glass-card"><div class="card-title"><span class="material-symbols-outlined">info</span> Informasi & Panduan</div>', unsafe_allow_html=True)
-    
-    # --- BAGIAN ATAS: STATUS & CARA PENGGUNAAN ---
-    col1, col2 = st.columns([1, 2], gap="large")
 
-    with col1:
-        st.markdown("<h4 style='color:#ffb4a3; font-family: Space Grotesk, sans-serif; margin-bottom:10px;'>Status Model</h4>", unsafe_allow_html=True)
-        
-        ann_status = "🟢 Dimuat (.h5)" if models.get('ann') else "🔴 Gagal Dimuat"
-        fis_manual_status = "🟢 Dimuat (.json)" if models.get('fis_manual') else "🟡 Default Values"
-        fis_ga_status = "🟢 Dimuat (.json)" if models.get('fis_ga') else "🔴 Gagal Dimuat"
-        
-        st.markdown(f"""
-<div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #a3cce4;">
-    <div style="margin-bottom: 8px;">Model FIS Manual : {fis_manual_status}</div>
-    <div>Model FIS + GA : {fis_ga_status}</div>
-    <div style="margin-bottom: 8px;">Model FIS + ANN : {ann_status}</div>
-</div>
-""", unsafe_allow_html=True)
-
-    with col2:
-        st.markdown("""
+    st.markdown("""
 <div style="font-family: 'Public Sans', sans-serif; color: #a3cce4; line-height: 1.7; font-size: 0.95rem; margin-bottom: 15px;">
-    Sistem ini mengklasifikasikan kualitas udara berdasarkan dataset historis ISPU DKI Jakarta.
-    Anda dapat mensimulasikan berbagai kondisi atmosfer untuk membandingkan kinerja dan akurasi ketiga arsitektur kecerdasan buatan di bawah ini.
+Sistem ini mengklasifikasikan kualitas udara berdasarkan dataset historis ISPU DKI Jakarta.
+Anda dapat mensimulasikan berbagai kondisi atmosfer untuk membandingkan kinerja dan akurasi ketiga arsitektur kecerdasan buatan di bawah ini.
 </div>
 """, unsafe_allow_html=True)
 
-        st.markdown("<h4 style='color:#ffb4a3; font-family: Space Grotesk, sans-serif; margin-bottom:10px;'>Panduan Penggunaan</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color:#ffb4a3; font-family: Space Grotesk, sans-serif; margin-bottom:10px;'>Panduan Penggunaan</h4>", unsafe_allow_html=True)
 
-        st.markdown("""
+    st.markdown("""
 <div style="font-family: 'Public Sans', sans-serif; color: #a3cce4; line-height: 1.8; font-size: 1rem;">
-    <ol style="margin-left: 20px; margin-bottom: 0;">
-        <li style="margin-bottom: 6px;">Buka tab <strong style="color: #dae3f7;">Prediksi ISPU</strong>.</li>
-        <li style="margin-bottom: 6px;">Pilih <strong style="color: #dae3f7;">Model Arsitektur</strong> yang ingin diuji.</li>
-        <li style="margin-bottom: 6px;">Atur <strong style="color: #dae3f7;">Parameter Polutan</strong> menggunakan slider.</li>
-        <li style="margin-bottom: 6px;">Klik <strong style="color: #ffb4a3;">Jalankan Simulasi</strong>.</li>
-        <li>Lihat hasil kalkulasi dan grafik di panel kanan.</li>
-    </ol>
+<ol style="margin-left: 20px; margin-bottom: 0;">
+    <li style="margin-bottom: 6px;">Buka tab <strong style="color: #dae3f7;">Prediksi ISPU</strong>.</li>
+    <li style="margin-bottom: 6px;">Pilih <strong style="color: #dae3f7;">Model Arsitektur</strong> yang ingin diuji.</li>
+    <li style="margin-bottom: 6px;">Atur <strong style="color: #dae3f7;">Parameter Polutan</strong> menggunakan slider.</li>
+    <li style="margin-bottom: 6px;">Klik <strong style="color: #ffb4a3;">Jalankan Simulasi</strong>.</li>
+    <li>Lihat hasil kalkulasi dan grafik di panel kanan.</li>
+</ol>
 </div>
 """, unsafe_allow_html=True)
 
