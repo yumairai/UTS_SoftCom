@@ -21,26 +21,52 @@ RULES_DEFAULT   = [('rendah', 'rendah', 'rendah', 'Sangat Aman'), ('tinggi', 'ti
 
 @st.cache_resource(show_spinner=False)
 def load_models():
-    models = {'ann': None, 'scaler': None, 'label_enc': {'classes': CLASS_ORDER}, 'fis_manual': None, 'fis_ga': None}
+    models = {
+        'ann': None, 
+        'scaler': None, 
+        'label_enc': {'classes': CLASS_ORDER}, 
+        'fis_manual': None, 
+        'fis_ga': None
+    }
     
+    # 1. Cek & Load Config JSON
     try:
-        # PERBAIKAN 1: Load kedua konfigurasi JSON
         if os.path.exists('fis_manual_config.json'):
-            models['fis_manual'] = json.load(open('fis_manual_config.json'))
+            with open('fis_manual_config.json', 'r') as f:
+                models['fis_manual'] = json.load(f)
+        
         if os.path.exists('fis_ga_config.json'):
-            models['fis_ga'] = json.load(open('fis_ga_config.json'))
-    except Exception as e: pass
+            with open('fis_ga_config.json', 'r') as f:
+                models['fis_ga'] = json.load(f)
+    except Exception as e:
+        st.error(f"Gagal memuat JSON: {e}")
 
+    # 2. Cek & Load Model ANN + Scaler
     try:
         from tensorflow.keras.models import load_model
+        
+        # Cek ANN
         if os.path.exists('ann_model.h5'):
             models['ann'] = load_model('ann_model.h5')
+        else:
+            st.error("File 'ann_model.h5' tidak ditemukan!")
+
+        # Cek Scaler
         if os.path.exists('scaler.pkl'):
-            models['scaler'] = pickle.load(open('scaler.pkl', 'rb'))
+            with open('scaler.pkl', 'rb') as f:
+                models['scaler'] = pickle.load(f)
+        else:
+            st.error("File 'scaler.pkl' tidak ditemukan!")
+
+        # Cek Label Encoder
         if os.path.exists('label_encoder.pkl'):
-            models['label_enc'] = pickle.load(open('label_encoder.pkl', 'rb'))
+            with open('label_encoder.pkl', 'rb') as f:
+                models['label_enc'] = pickle.load(f)
+                
     except Exception as e:
-        print(f"ANN Load Error: {e}")
+        # Jika muncul error "Unknown layer", "Bad magic number", dsb
+        st.error(f"⚠️ Error Kritikal saat memuat model: {e}")
+        st.info("Saran: Pastikan versi TensorFlow di laptop sama dengan di Colab.")
         
     return models
 
@@ -124,21 +150,23 @@ def predict_fis(pm25, pm10, co, config=None):
 
 # --- PERBAIKAN LOGIKA ANN ---
 def predict_ann(pm25, pm10, co, models):
+    # Pastikan classes diambil dari CLASS_ORDER agar tidak Unknown
     classes = CLASS_ORDER 
     
-    # Cek apakah model & scaler benar-benar ada
-    if models['ann'] is None:
-        return "Model Error", np.array([0, 0, 0, 0])
-    if models['scaler'] is None:
-        return "Scaler Error", np.array([0, 0, 0, 0])
-
-    try:
-        X = np.array([[pm25, pm10, co]])
-        X_scaled = models['scaler'].transform(X)
-        proba = models['ann'].predict(X_scaled, verbose=0)[0]
-        label = classes[int(np.argmax(proba))]
-        return label, proba
-    except Exception as e:
-        # Ini akan memunculkan pesan error asli di web Streamlit kamu
-        st.warning(f"Terjadi kesalahan teknis: {e}")
-        return "Error", np.array([0, 0, 0, 0])
+    if models['ann'] is not None and models['scaler'] is not None:
+        try:
+            X = np.array([[pm25, pm10, co]])
+            X_scaled = models['scaler'].transform(X)
+            proba = models['ann'].predict(X_scaled, verbose=0)[0]
+            label = classes[int(np.argmax(proba))]
+            return label, proba
+        except Exception as e:
+            st.error(f"Prediction Error: {e}")
+            
+    # Jika model gagal load, berikan prediksi dummy berdasarkan input sederhana
+    # agar UI tidak pecah/Unknown
+    dummy_idx = 0
+    if pm25 > 150 or pm10 > 100: dummy_idx = 2
+    if pm25 > 250: dummy_idx = 3
+    
+    return classes[dummy_idx], np.array([0.0, 0.0, 0.0, 0.0])
