@@ -6,3 +6,4 @@ scikit-learn
 scikit-fuzzy
 pygad
 tensorflow-cpu==2.15.0
+plotly
