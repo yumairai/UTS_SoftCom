@@ -2,5 +2,5 @@ streamlit
 numpy
 matplotlib
 plotly
-tensorflow
+tensorflow-cpu==2.15.0
 scikit-learn
